@@ -1,8 +1,10 @@
 <template>
+
     <div class="plugin-conference-jitsi">
-        <div v-if="isJoined" class="plugin-conference-overlay">
-            {{ roomName }} @ {{ network.name }}
-        </div>
+        <iframe id="frameTest"  allow="autoplay; camera; clipboard-write; compute-pressure; display-capture; hid; microphone; screen-wake-lock; speaker-selection" allowfullscreen="true" src="https://irc.chateachat.com:3000/" style="height: 100%; width: 100%; border: 0px;" @load="load"></iframe>
+
+        <!-- <div v-if="isJoined" class="plugin-conference-overlay">
+        </div> -->
     </div>
 </template>
 
@@ -55,7 +57,7 @@ export default {
             return;
         }
 
-        this.loadingAnimationStart();
+        // this.loadingAnimationStart();
 
         if (config.setting('showLink')) {
             this.getLink();
@@ -71,6 +73,10 @@ export default {
             this.scriptLoad();
         }
 
+        const iframe = document.querySelector('#frameTest');
+        iframe.onload = () => {
+            this.sendJoinMessage();
+        }
         // MediaViewer also sets a height on mounted()
         // and is called after this mounted()
         this.$nextTick(() => {
@@ -90,51 +96,58 @@ export default {
     },
     methods: {
         scriptLoad() {
-            let that = this;
-            let scr = document.createElement('script');
-            scr.src = 'https://' + config.setting('server') + '/external_api.js';
-            scr.onload = () => {
-                that.scriptLoaded();
-            };
-            scr.defer = true;
-            this.$el.appendChild(scr);
+            // let that = this;
+            // let scr = document.createElement('script');
+            // scr.src = 'https://' + config.setting('server') + '/external_api.js';
+            // scr.onload = () => {
+            //     that.scriptLoaded();
+            // };
+            // scr.defer = true;
+            // this.$el.appendChild(scr);
+            this.sendJoinMessage();
+
         },
         scriptLoaded() {
-            let configOverwrite = config.setting('configOverwrite');
-            configOverwrite.prejoinPageEnabled = false;
+            // let configOverwrite = config.setting('configOverwrite');
+            // configOverwrite.prejoinPageEnabled = false;
 
-            let domain = config.setting('server');
-            let options = {
-                roomName: this.encodedRoomName,
-                parentNode: this.$el,
-                configOverwrite: configOverwrite,
-                interfaceConfigOverwrite: config.setting('interfaceConfigOverwrite'),
-                onload: () => {
-                    this.api.executeCommand('displayName', this.network.nick);
-                    this.api.executeCommand('subject', ' ');
-                    this.api.once('videoConferenceJoined', () => {
-                        this.loadingAnimationStop();
-                        this.isJoined = true;
-                        if (!config.setting('showLink') || this.link) {
-                            // if showLink is disabled or the link is ready send our join message,
-                            // if the link is not ready the message will be send when it is
-                            this.sendJoinMessage();
-                        }
-                    });
-                    this.api.once('videoConferenceLeft', () => {
-                        kiwi.emit('mediaviewer.hide');
-                    });
-                },
-            };
+            // let domain = config.setting('server');
+            // let options = {
+            //     roomName: this.encodedRoomName,
+            //     parentNode: this.$el,
+            //     configOverwrite: configOverwrite,
+            //     interfaceConfigOverwrite: config.setting('interfaceConfigOverwrite'),
+            //     onload: () => {
+            //         this.api.executeCommand('displayName', this.network.nick);
+            //         this.api.executeCommand('subject', ' ');
+            //         this.api.once('videoConferenceJoined', () => {
+            //             this.loadingAnimationStop();
+            //             this.isJoined = true;
+            //             if (!config.setting('showLink') || this.link) {
+            //                 // if showLink is disabled or the link is ready send our join message,
+            //                 // if the link is not ready the message will be send when it is
+            //                 this.sendJoinMessage();
+            //             }
+            //         });
+            //         this.api.once('videoConferenceLeft', () => {
+            //             kiwi.emit('mediaviewer.hide');
+            //         });
+            //     },
+            // };
 
-            if (config.setting('secure')) {
-                options.jwt = this.token;
-                options.noSsl = false;
-            }
+            // if (config.setting('secure')) {
+            //     options.jwt = this.token;
+            //     options.noSsl = false;
+            // }
 
-            this.api = new window.JitsiMeetExternalAPI(domain, options);
+            // this.api = new window.JitsiMeetExternalAPI(domain, options);
         },
         sendJoinMessage() {
+            var text =   document.querySelector('#text-container').innerHTML;
+          
+
+            // var text = document.querySelector('#uuid-value').getHTML()
+            
             let msgText = this.buffer.isQuery() ?
                 config.setting('inviteText') :
                 config.setting('joinText');
@@ -145,26 +158,14 @@ export default {
                 msgText += ' ' + this.link;
             }
 
-            let message = new this.network.ircClient.Message('PRIVMSG', this.buffer.name, msgText);
-            message.prefix = this.network.nick;
-            message.tags['+kiwiirc.com/conference'] = config.getSetting('tagID');
+            let message = new this.network.ircClient.Message('PRIVMSG', this.buffer.name, text);
+            // message.tags['+kiwiirc.com/conference'] = config.getSetting('tagID');
             this.network.ircClient.raw(message);
+
+
+
         },
-        loadingAnimationStart() {
-            if (this.loadingAnimation) {
-                return;
-            }
-            this.loadingAnimation = document.createElement('div');
-            this.loadingAnimation.style.position = 'absolute';
-            this.loadingAnimation.style.top = '34%';
-            this.loadingAnimation.style.marginLeft = '45%';
-            this.loadingAnimation.innerHTML = '<i class="fa fa-spin fa-spinner" aria-hidden="true" style="font-size: 100px;"/>';
-            this.$el.appendChild(this.loadingAnimation);
-        },
-        loadingAnimationStop() {
-            this.$el.removeChild(this.loadingAnimation);
-            this.loadingAnimation = null;
-        },
+        
         getLink() {
             let link = 'https://' + config.setting('server') + '/' + this.encodedRoomName;
             if (!config.setting('useLinkShortener')) {

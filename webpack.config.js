@@ -4,6 +4,7 @@ const VueLoaderPlugin = require('vue-loader/lib/plugin');
 const makeSourceMap = process.argv.indexOf('--srcmap') > -1;
 
 module.exports = {
+    
     mode: 'production',
     entry: './src/plugin.js',
     output: {

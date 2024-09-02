@@ -38,7 +38,7 @@ kiwi.plugin('conference', (kiwi) => {
         if (pluginState.isActive || !event.buffer) {
             return;
         }
-
+ 
         pluginState.isActive = true;
         kiwi.emit('mediaviewer.show', {
             component: JitsiMediaView,
